@@ -4,6 +4,8 @@ import threading
 import uuid
 import re
 import shutil
+import requests
+import random
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -34,6 +36,17 @@ def get_cookie_file():
     if local_cookie.exists():
         return str(local_cookie)
     return None
+
+def get_free_proxies():
+    try:
+        res = requests.get('https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', timeout=5)
+        proxies = res.text.strip().split('\n')
+        proxies = [f"http://{p.strip()}" for p in proxies if p.strip()]
+        random.shuffle(proxies)
+        return proxies
+    except Exception as e:
+        print(f"Failed to fetch proxies: {e}")
+        return []
 
 def run_download(dl_id: str, url: str, quality: str,
                  burn_subs: bool, sub_lang: str, sub_style: str, sub_anim: str, sub_color: str = "", aspect_ratio: str = "original", word_by_word: bool = False):
@@ -84,20 +97,33 @@ def run_download(dl_id: str, url: str, quality: str,
             "subtitlesformat": "vtt/srt/best",
         })
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title      = info.get("title", "video")
-            ext        = info.get("ext", "mp4")
-            safe_title = sanitize_filename(title)
-            video_file = DOWNLOAD_DIR / f"{safe_title}.{ext}"
+    proxies_to_try = [None] + get_free_proxies()[:15]
+    success = False
+    last_error = None
 
-            if not video_file.exists():
-                mp4s = sorted(DOWNLOAD_DIR.glob("*.mp4"), key=os.path.getmtime, reverse=True)
-                video_file = mp4s[0] if mp4s else video_file
+    for proxy in proxies_to_try:
+        if proxy:
+            ydl_opts['proxy'] = proxy
+            record.update({"status": "processing", "status_label": f"Testing proxy...", "progress": 10})
+        else:
+            if 'proxy' in ydl_opts:
+                del ydl_opts['proxy']
+            record.update({"status": "processing", "status_label": "Starting download...", "progress": 5})
 
-            record.update({
-                "title":     title,
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title      = info.get("title", "video")
+                ext        = info.get("ext", "mp4")
+                safe_title = sanitize_filename(title)
+                video_file = DOWNLOAD_DIR / f"{safe_title}.{ext}"
+
+                if not video_file.exists():
+                    mp4s = sorted(DOWNLOAD_DIR.glob("*.mp4"), key=os.path.getmtime, reverse=True)
+                    video_file = mp4s[0] if mp4s else video_file
+
+                record.update({
+                    "title":     title,
                 "thumbnail": info.get("thumbnail", ""),
                 "duration":  info.get("duration", 0),
             })
@@ -122,19 +148,46 @@ def run_download(dl_id: str, url: str, quality: str,
                     f.unlink(missing_ok=True)
                 for f in DOWNLOAD_DIR.glob(f"{safe_title}*.ass"):
                     f.unlink(missing_ok=True)
+            # ── Subtitle burn ─────────────────────────────────────────────────
+            if burn_subs:
+                record.update({"status": "finding_subs", "status_label": "Looking for subtitle file…"})
+                safe_title = sanitize_filename(record["title"])
+                sub_file = find_subtitle_file(safe_title, sub_lang)
 
-                record["subs_burned"] = True
-                record["sub_style_label"] = SUBTITLE_STYLES.get(sub_style, {}).get("label", sub_style)
-            else:
-                record.update({
-                    "subs_burned": False,
-                    "sub_warn":    f"No '{sub_lang}' subtitles available for this video.",
-                })
+                if sub_file and sub_file.exists():
+                    final_file = burn_subtitles(video_file, sub_file, sub_style, sub_anim, sub_color, record, aspect_ratio, word_by_word)
 
-        record.update({"status": "done", "progress": 100, "filename": video_file.name})
+                    # Swap original with burned version
+                    video_file.unlink(missing_ok=True)
+                    final_file.rename(video_file)
 
-    except Exception as e:
-        record.update({"status": "error", "error": str(e)})
+                    # Cleanup leftover subtitle files
+                    for f in DOWNLOAD_DIR.glob(f"{safe_title}*.srt"):
+                        f.unlink(missing_ok=True)
+                    for f in DOWNLOAD_DIR.glob(f"{safe_title}*.vtt"):
+                        f.unlink(missing_ok=True)
+                    for f in DOWNLOAD_DIR.glob(f"{safe_title}*.ass"):
+                        f.unlink(missing_ok=True)
+
+                    record["subs_burned"] = True
+                    record["sub_style_label"] = SUBTITLE_STYLES.get(sub_style, {}).get("label", sub_style)
+                else:
+                    record.update({
+                        "subs_burned": False,
+                        "sub_warn":    f"No '{sub_lang}' subtitles available for this video.",
+                    })
+                
+            record.update({"status": "done", "progress": 100, "filename": video_file.name})
+            
+            success = True
+            break
+        except yt_dlp.utils.DownloadError as e:
+            print(f"yt-dlp error with proxy {proxy}: {e}")
+            last_error = e
+            continue
+            
+    if not success:
+        record.update({"status": "error", "error": f"Failed after trying multiple proxies: {last_error}"})
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

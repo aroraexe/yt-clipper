@@ -64,6 +64,7 @@ def test_proxy(proxy):
         'quiet': True,
         'no_warnings': True,
         'logger': DummyLogger(),
+        'socket_timeout': 5,
         'extractor_args': {'youtube': ['player_client=ios,android']}
     }
     try:
@@ -77,9 +78,9 @@ def test_proxy(proxy):
 def maintain_proxy_pool():
     while True:
         if WORKING_PROXIES.qsize() < 5:
-            proxies = get_free_proxies()[:30]
+            proxies = get_free_proxies()[:100]
             if proxies:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
                     futures = {executor.submit(test_proxy, p): p for p in proxies}
                     for future in concurrent.futures.as_completed(futures):
                         res = future.result()

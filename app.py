@@ -3,6 +3,7 @@ import subprocess
 import threading
 import uuid
 import re
+import shutil
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -26,7 +27,9 @@ from subtitle_engine import find_subtitle_file, burn_subtitles, _fmt_bytes, sani
 def get_cookie_file():
     render_secret = Path("/etc/secrets/cookies.txt")
     if render_secret.exists():
-        return str(render_secret)
+        tmp_cookie = Path("/tmp/youtube_cookies.txt")
+        shutil.copy2(render_secret, tmp_cookie)
+        return str(tmp_cookie)
     local_cookie = Path(__file__).parent / "cookies.txt"
     if local_cookie.exists():
         return str(local_cookie)

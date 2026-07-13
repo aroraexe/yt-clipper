@@ -80,9 +80,9 @@ def maintain_proxy_pool():
         return # Skip scraping if dedicated proxy is set
     while True:
         if WORKING_PROXIES.qsize() < 5:
-            proxies = get_free_proxies()[:100]
+            proxies = get_free_proxies()[:20]
             if proxies:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                     futures = {executor.submit(test_proxy, p): p for p in proxies}
                     for future in concurrent.futures.as_completed(futures):
                         res = future.result()

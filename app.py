@@ -57,10 +57,10 @@ def run_download(dl_id: str, url: str, quality: str,
             record.update({"status": "processing", "status_label": "Merging audio/video…", "progress": 95})
 
     fmt_map = {
-        "best": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-        "1080": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
-        "720":  "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
-        "480":  "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best",
+        "1080": "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
+        "720": "bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best",
+        "480": "bestvideo[height<=480]+bestaudio/bestvideo+bestaudio/best",
+        "best": "bestvideo+bestaudio/best"
     }
 
     ydl_opts = {

@@ -96,15 +96,20 @@ def run_download(dl_id: str, url: str, quality: str,
             "subtitleslangs": [sub_lang, "en"],
             "subtitlesformat": "vtt/srt/best",
         })
-
-    proxies_to_try = [None] + get_free_proxies()[:15]
+    premium_proxy = os.environ.get("PROXY_URL")
+    if premium_proxy:
+        proxies_to_try = [premium_proxy]
+    else:
+        proxies_to_try = [None] + get_free_proxies()[:15]
+        
     success = False
     last_error = None
 
     for proxy in proxies_to_try:
         if proxy:
             ydl_opts['proxy'] = proxy
-            record.update({"status": "processing", "status_label": f"Testing proxy...", "progress": 10})
+            proxy_type = "Premium" if proxy == premium_proxy else "Free"
+            record.update({"status": "processing", "status_label": f"Using {proxy_type} proxy...", "progress": 10})
         else:
             if 'proxy' in ydl_opts:
                 del ydl_opts['proxy']

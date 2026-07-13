@@ -1,0 +1,11 @@
+downloads/
+.env
+__pycache__/
+*.pyc
+*.mp4
+*.srt
+*.vtt
+*.ass
+.idea/
+.vscode/
+shorts_backup.zip

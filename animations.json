@@ -1,0 +1,32 @@
+{
+    "normal": {
+        "label": "Normal",
+        "emoji": "⏹️",
+        "desc": "No animation",
+        "tag": ""
+    },
+    "pop": {
+        "label": "Pop",
+        "emoji": "💥",
+        "desc": "Pop in",
+        "tag": "{\\t(0,200,\\fscx115\\fscy115)\\t(200,420,\\fscx100\\fscy100)\\fad(100,100)}"
+    },
+    "fade": {
+        "label": "Fade",
+        "emoji": "💨",
+        "desc": "Fade in/out",
+        "tag": "{\\fad(200,200)}"
+    },
+    "slide": {
+        "label": "Slide",
+        "emoji": "⬆️",
+        "desc": "Slide up (simulated with fade)",
+        "tag": "{\\fad(150,150)}"
+    },
+    "mrbeast": {
+        "label": "MrBeast Pop",
+        "emoji": "🐯",
+        "desc": "Fast pop (great for word-by-word)",
+        "tag": "{\\fscx0\\fscy0\\t(0,60,\\fscx120\\fscy120)\\t(60,120,\\fscx100\\fscy100)}"
+    }
+}

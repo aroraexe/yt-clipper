@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shorts Downloader — Clip Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #080b10;
+      --surface: #0e1320;
+      --card:    #111827;
+      --border:  #1e2d45;
+      --accent:  #6c63ff;
+      --cyan:    #00d4ff;
+      --green:   #00e676;
+      --red:     #ff4d6d;
+      --warn:    #ffd740;
+      --orange:  #ff9800;
+      --text:    #e8eaf6;
+      --muted:   #7986a3;
+      --glow:    0 0 28px rgba(108,99,255,.3);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Ambient orbs */
+    body::before {
+      content: '';
+      position: fixed;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(108,99,255,.14) 0%, transparent 70%);
+      border-radius: 50%;
+      top: -200px; left: -200px;
+      pointer-events: none; z-index: 0;
+      filter: blur(60px);
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0,212,255,.1) 0%, transparent 70%);
+      border-radius: 50%;
+      bottom: -100px; right: -100px;
+      pointer-events: none; z-index: 0;
+      filter: blur(60px);
+    }
+
+    .wrapper {
+      position: relative; z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 36px; }
+    .logo {
+      display: inline-flex; align-items: center; gap: 14px;
+      margin-bottom: 10px;
+    }
+    .logo-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      border-radius: 16px;
+      display: grid; place-items: center;
+      font-size: 24px;
+      box-shadow: var(--glow);
+      flex-shrink: 0;
+    }
+    .logo h1 {
+      font-size: 28px; font-weight: 800;
+      letter-spacing: -.5px;
+    }
+    .logo h1 span { color: var(--cyan); }
+    header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.4px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── URL row ── */
+    .url-row { display: flex; gap: 10px; align-items: center; }
+    .url-field {
+      flex: 1;
+      position: relative;
+    }
+    .url-field .ico {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px; color: var(--muted);
+      pointer-events: none;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px 13px 40px;
+      font-size: 14px; font-family: inherit;
+      color: var(--text); outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,.18);
+    }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237986a3' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 36px 13px 14px;
+      font-size: 13px; font-family: inherit;
+      color: var(--text); outline: none; cursor: pointer;
+      transition: border-color .2s;
+      height: 46px;
+    }
+    select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.18); }
+    select option { background: #111827; color: var(--text); }
+    #quality-select { width: 110px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .2s, opacity .2s;
+      white-space: nowrap; text-decoration: none;
+      height: 46px;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(108,99,255,.4);
+      padding: 12px 24px;
+    }
+    .btn-primary:hover { box-shadow: 0 6px 26px rgba(108,99,255,.55); }
+    .btn-ghost {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success {
+      background: linear-gradient(135deg, #00c853, var(--green));
+      color: #000; font-weight: 700;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* ── Subtitle Panel ── */
+    .sub-panel {
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    /* Row 1: toggle */
+    .sub-toggle-row {
+      display: flex; align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+    }
+    .toggle-label-text {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .sub-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 99px;
+      font-size: 11px; font-weight: 600;
+      margin-left: auto;
+    }
+    .chip-manual  { background: rgba(0,230,118,.15); color: var(--green); }
+    .chip-auto    { background: rgba(255,215,64,.15); color: var(--warn); }
+    .chip-none    { background: rgba(255,77,109,.12); color: var(--red); }
+
+    /* Row 2: lang + style (collapsible) */
+    .sub-options-row {
+      display: none;
+      gap: 12px;
+      padding: 0 18px 16px;
+      flex-wrap: wrap;
+    }
+    .sub-options-row.open { display: flex; }
+
+    .sub-field {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .sub-field label {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .sub-field select {
+      padding: 10px 36px 10px 12px;
+      font-size: 13px;
+      border-radius: 10px;
+      height: auto;
+    }
+    #sub-lang-select  { width: 160px; }
+    #sub-style-select { width: 100%; flex: 1; min-width: 140px; }
+    .sub-field-style  { flex: 1; }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 50%;
+      padding: 0;
+      background: none;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+
+
+    /* ── Toggle switch ── */
+    .toggle {
+      position: relative;
+      width: 44px; height: 24px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 99px;
+      transition: background .25s;
+    }
+    .toggle input:checked ~ .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute;
+      width: 18px; height: 18px;
+      border-radius: 50%; background: #fff;
+      top: 3px; left: 3px;
+      transition: left .25s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    }
+    .toggle input:checked ~ .toggle-thumb { left: 23px; }
+
+    /* ── YouTube pill ── */
+    .yt-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 12px;
+      padding: 5px 14px;
+      border-radius: 99px;
+      background: rgba(255,0,0,.1);
+      border: 1px solid rgba(255,0,0,.2);
+      font-size: 12px; font-weight: 600; color: #ff4444;
+    }
+
+    /* ── Preview card ── */
+    #preview-card { display: none; margin-top: 14px; }
+    .preview-inner {
+      display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap;
+    }
+    .thumb-wrap {
+      width: 156px; height: 88px; flex-shrink: 0;
+      border-radius: 10px; overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .meta { flex: 1 1 200px; }
+    .meta h3 { font-size: 15px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .meta-row { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+    .meta-row span { color: var(--text); }
+    .meta-subs { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      padding: 9px 18px; border-radius: 10px;
+      font-size: 13px; font-weight: 600;
+      background: transparent; border: 1.5px solid transparent;
+      color: var(--muted); cursor: pointer; transition: all .2s;
+    }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tab:hover:not(.active) { border-color: var(--border); color: var(--text); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Queue & File items ── */
+    .queue-list, .file-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .queue-item {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      transition: border-color .2s;
+    }
+    .queue-item.is-burning { border-color: rgba(255,152,0,.45); }
+
+    .queue-header {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 10px;
+    }
+    .queue-title {
+      font-size: 13px; font-weight: 500; flex: 1;
+      min-width: 0; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .queue-tags {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .tag {
+      font-size: 11px; color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 2px 9px; border-radius: 99px;
+    }
+
+    .file-item {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      transition: border-color .2s;
+    }
+    .file-item:hover { border-color: var(--accent); }
+    .file-icon { font-size: 26px; flex-shrink: 0; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-size { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Progress ── */
+    .progress-wrap { margin-top: 12px; }
+    .bar-bg { height: 5px; border-radius: 99px; background: var(--card); overflow: hidden; }
+    .bar-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      transition: width .4s ease;
+    }
+    .bar-fill.burning {
+      background: linear-gradient(90deg, var(--orange), var(--warn));
+      animation: pulse 1.5s ease infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.65} }
+    .bar-label {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-top: 5px;
+    }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 99px;
+      font-size: 11px; font-weight: 600; flex-shrink: 0;
+    }
+    .b-dl      { background: rgba(108,99,255,.2); color: var(--accent); }
+    .b-burn    { background: rgba(255,152,0,.2);  color: var(--orange); }
+    .b-done    { background: rgba(0,230,118,.15); color: var(--green); }
+    .b-error   { background: rgba(255,77,109,.15); color: var(--red); }
+    .b-proc    { background: rgba(255,215,64,.15); color: var(--warn); }
+    .b-start   { background: rgba(108,99,255,.1); color: var(--muted); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 36px; color: var(--muted); font-size: 13px; }
+    .empty-icon { font-size: 42px; margin-bottom: 10px; }
+
+    /* ── Alert ── */
+    .alert {
+      padding: 10px 14px; border-radius: 10px;
+      font-size: 12px; margin-top: 10px; line-height: 1.5;
+    }
+    .alert-warn { background: rgba(255,215,64,.08); border: 1px solid rgba(255,215,64,.25); color: var(--warn); }
+    .alert-error { background: rgba(255,77,109,.08); border: 1px solid rgba(255,77,109,.25); color: var(--red); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      z-index: 9999;
+      transform: translateY(16px); opacity: 0;
+      transition: all .3s; max-width: 340px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok  { border-color: var(--green); color: var(--green); }
+    .toast.err { border-color: var(--red);   color: var(--red); }
+
+    /* ── Card header row ── */
+    .card-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 540px) {
+      .url-row { flex-wrap: wrap; }
+      .url-field { flex: 1 1 100%; }
+      .preview-inner { flex-direction: column; }
+      .thumb-wrap { width: 100%; height: 170px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">✂️</div>
+      <h1>Shorts <span>Downloader</span></h1>
+    </div>
+    <p>Paste a YouTube link · Choose quality · Burn subtitles · Download MP4</p>
+  </header>
+
+  <!-- Main card -->
+  <div class="card">
+    <div class="section-label">🔗 YouTube URL</div>
+
+    <!-- URL input row -->
+    <div class="url-row">
+      <div class="url-field">
+        <span class="ico">🔗</span>
+        <input type="text" id="url-input" placeholder="Paste YouTube video URL here…" />
+      </div>
+      <select id="quality-select">
+        <option value="best">Best</option>
+        <option value="1080">1080p</option>
+        <option value="720" selected>720p</option>
+        <option value="480">480p</option>
+      </select>
+      <button class="btn btn-ghost" id="fetch-btn" onclick="fetchInfo()">🔍 Preview</button>
+      <button class="btn btn-primary" id="dl-btn" onclick="startDownload()">⬇️ Download</button>
+    </div>
+
+    <!-- Subtitle panel -->
+    <div class="sub-panel">
+      <!-- Row 1: toggle + chip -->
+      <div class="sub-toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="subs-toggle" onchange="toggleSubPanel()" />
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+        <span class="toggle-label-text">🔤 Burn Subtitles into Video</span>
+        <div id="sub-chips"></div>
+      </div>
+
+
+      <!-- Row 2: lang + style dropdowns -->
+      <div class="sub-options-row" id="sub-options-row">
+        <div class="sub-field">
+          <label>Language</label>
+          <select id="sub-lang-select">
+            <option value="en">🇬🇧 English</option>
+            <option value="hi">🇮🇳 Hindi</option>
+            <option value="es">🇪🇸 Spanish</option>
+            <option value="fr">🇫🇷 French</option>
+            <option value="de">🇩🇪 German</option>
+            <option value="pt">🇧🇷 Portuguese</option>
+            <option value="ar">🇸🇦 Arabic</option>
+            <option value="zh-Hans">🇨🇳 Chinese</option>
+            <option value="ja">🇯🇵 Japanese</option>
+            <option value="ko">🇰🇷 Korean</option>
+            <option value="ru">🇷🇺 Russian</option>
+            <option value="it">🇮🇹 Italian</option>
+          </select>
+        </div>
+        <div class="sub-field sub-field-style">
+          <label>Font Style</label>
+          <select id="sub-style-select">
+            <option value="classic">Loading…</option>
+          </select>
+        </div>
+        <div class="sub-field">
+          <label>Color</label>
+          <input type="color" id="sub-color-input" value="#ffffff" />
+        </div>
+        <div class="sub-field">
+          <label>Animation</label>
+          <select id="sub-anim-select" style="width: 130px;">
+            <option value="normal">Loading…</option>
+          </select>
+        </div>
+        <div class="sub-field">
+          <label>Aspect Ratio</label>
+          <select id="aspect-ratio-select">
+            <option value="original">Original</option>
+            <option value="9:16">Vertical (9:16)</option>
+            <option value="16:9">Landscape (16:9)</option>
+          </select>
+        </div>
+        <div class="sub-field" style="flex-direction: row; align-items: center; gap: 8px;">
+          <input type="checkbox" id="word-by-word-toggle" />
+          <label for="word-by-word-toggle" style="margin-bottom: 0; cursor: pointer;">Word-by-word</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video preview (shown after clicking Preview) -->
+    <div id="preview-card">
+      <div class="preview-inner">
+        <div class="thumb-wrap">
+          <img id="prev-thumb" src="" alt="thumbnail" />
+        </div>
+        <div class="meta">
+          <h3 id="prev-title">—</h3>
+          <div class="meta-row">📺 Channel: <span id="prev-uploader">—</span></div>
+          <div class="meta-row">⏱️ Duration: <span id="prev-duration">—</span> &nbsp;·&nbsp; 👁️ <span id="prev-views">—</span></div>
+          <div class="meta-subs" id="prev-subs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube badge -->
+    <div style="margin-top:14px;">
+      <span class="yt-pill">▶ YouTube Only</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('queue', this)">⬇️ Download Queue</button>
+    <button class="tab" onclick="switchTab('files', this)">📁 Downloaded Files</button>
+  </div>
+
+  <!-- Queue tab -->
+  <div id="tab-queue" class="tab-panel active">
+    <div class="card">
+      <div class="card-header">
+        <div class="section-label" style="margin:0">Active Downloads</div>
+      </div>
+      <div id="queue-list" class="queue-list">
+        <div class="empty"><div class="empty-icon">📭</div>No downloads yet — paste a link above!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files tab -->
+  <div id="tab-files" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div class="section-label" style="margin:0">Your MP4 Files</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="height:36px;padding:8px 14px;font-size:12px;" onclick="openFolder()">📂 Open Folder</button>
+          <button class="btn btn-ghost" style="height:36px;padding:8px 14px;font-size:12px;" onclick="loadFiles()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="file-list" class="file-list">
+        <div class="empty"><div class="empty-icon">🎬</div>No MP4s yet — download something!</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const urlInput    = document.getElementById('url-input');
+  const queueList   = document.getElementById('queue-list');
+  const fileList    = document.getElementById('file-list');
+  const previewCard = document.getElementById('preview-card');
+  const subChips    = document.getElementById('sub-chips');
+  const subOptsRow  = document.getElementById('sub-options-row');
+  const subDivider  = document.getElementById('sub-divider');
+  let pollers = {};
+
+  // ── Load subtitle styles and animations from API ──────────────────────────
+  async function loadStyles() {
+    try {
+      const res  = await fetch('/api/styles');
+      const list = await res.json();
+      const sel  = document.getElementById('sub-style-select');
+      
+      // Dynamically load Google Fonts
+      const fontNames = list.map(s => s.label.replace(/ /g, '+'));
+      const fontUrl = `https://fonts.googleapis.com/css2?family=${fontNames.join('&family=')}&display=swap`;
+      const link = document.createElement('link');
+      link.href = fontUrl;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+
+      sel.innerHTML = list.map(s =>
+        `<option value="${s.key}" style="font-family: '${s.label}', sans-serif;">${s.emoji} ${s.label}</option>`
+      ).join('');
+    } catch(e) {}
+  }
+  
+  async function loadAnimations() {
+    try {
+      const res  = await fetch('/api/animations');
+      const list = await res.json();
+      const sel  = document.getElementById('sub-anim-select');
+      sel.innerHTML = list.map(s =>
+        `<option value="${s.key}">${s.emoji} ${s.label}</option>`
+      ).join('');
+    } catch(e) {}
+  }
+
+  loadStyles();
+  loadAnimations();
+
+  // ── Toggle subtitle panel open/close ──────────────────────────────────────
+  function toggleSubPanel() {
+    const isChecked = document.getElementById('subs-toggle').checked;
+    const optsRow   = document.getElementById('sub-options-row');
+    
+    if (isChecked) {
+      optsRow.classList.add('open');
+    } else {
+      optsRow.classList.remove('open');
+    }
+  }
+
+  // ── Tab switch ────────────────────────────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'files') loadFiles();
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function toast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + type;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  // ── Fetch video info (Preview) ────────────────────────────────────────────
+  async function fetchInfo() {
+    const url = urlInput.value.trim();
+    if (!url) { toast('Paste a URL first!', 'err'); return; }
+    const btn = document.getElementById('fetch-btn');
+    btn.disabled = true; btn.textContent = '⏳ Loading…';
+    try {
+      const res = await fetch('/api/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const d = await res.json();
+      if (d.error) { toast('❌ ' + d.error, 'err'); return; }
+
+      document.getElementById('prev-thumb').src       = d.thumbnail || '';
+      document.getElementById('prev-title').textContent    = d.title    || '—';
+      document.getElementById('prev-uploader').textContent = d.uploader || '—';
+      document.getElementById('prev-duration').textContent = fmtDuration(d.duration);
+      document.getElementById('prev-views').textContent    = fmtNum(d.view_count) + ' views';
+
+      // Sub availability chip
+      const prevSubs = document.getElementById('prev-subs');
+      let chipHtml = '';
+      if (d.has_manual_subs) {
+        chipHtml = '<span class="sub-chip chip-manual">✅ Manual subtitles</span>';
+        subChips.innerHTML = '<span class="sub-chip chip-manual">✅ Manual subs</span>';
+      } else if (d.has_auto_subs) {
+        chipHtml = '<span class="sub-chip chip-auto">⚡ Auto-generated captions</span>';
+        subChips.innerHTML = '<span class="sub-chip chip-auto">⚡ Auto captions</span>';
+      } else {
+        chipHtml = '<span class="sub-chip chip-none">❌ No subtitles found</span>';
+        subChips.innerHTML = '<span class="sub-chip chip-none">❌ No subs</span>';
+      }
+      prevSubs.innerHTML = chipHtml;
+
+      // Add any extra languages to selector
+      if (d.sub_langs && d.sub_langs.length) {
+        const sel = document.getElementById('sub-lang-select');
+        const existing = Array.from(sel.options).map(o => o.value);
+        d.sub_langs.forEach(lang => {
+          if (!existing.includes(lang)) {
+            const opt = document.createElement('option');
+            opt.value = lang; opt.textContent = lang;
+            sel.appendChild(opt);
+          }
+        });
+      }
+
+      previewCard.style.display = 'block';
+      toast('✅ Video info loaded!', 'ok');
+    } catch(e) {
+      toast('❌ ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '🔍 Preview';
+    }
+  }
+
+  // ── Start download ────────────────────────────────────────────────────────
+  async function startDownload() {
+    const url      = urlInput.value.trim();
+    const quality  = document.getElementById('quality-select').value;
+    const burnSubs = document.getElementById('subs-toggle').checked;
+    const subLang  = document.getElementById('sub-lang-select').value;
+    const subStyle = document.getElementById('sub-style-select').value;
+    const subColor = document.getElementById('sub-color-input').value;
+    const subAnim  = document.getElementById('sub-anim-select').value;
+    const aspectRatio = document.getElementById('aspect-ratio-select').value;
+    const wordByWord  = document.getElementById('word-by-word-toggle').checked;
+    if (!url) { toast('Paste a URL first!', 'err'); return; }
+
+    const btn = document.getElementById('dl-btn');
+    btn.disabled = true; btn.textContent = '⏳ Starting…';
+    try {
+      const res = await fetch('/api/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          url, quality, burn_subs: burnSubs, sub_lang: subLang, 
+          sub_style: subStyle, sub_color: subColor, sub_anim: subAnim,
+          aspect_ratio: aspectRatio, word_by_word: wordByWord
+        }),
+      });
+      const d = await res.json();
+      if (d.error) { toast('❌ ' + d.error, 'err'); return; }
+      toast('⬇️ Download started!', 'ok');
+      urlInput.value = '';
+      previewCard.style.display = 'none';
+      subChips.innerHTML = '';
+      pollDownload(d.id);
+      document.querySelectorAll('.tab')[0].click();
+    } catch(e) {
+      toast('❌ ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '⬇️ Download';
+    }
+  }
+
+  // ── Poll download ─────────────────────────────────────────────────────────
+  function pollDownload(id) {
+    renderQueueItem(id, { id, status: 'starting', status_label: 'Starting…', progress: 0 });
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch('/api/status/' + id);
+        const d = await res.json();
+        renderQueueItem(id, d);
+        if (d.status === 'done' || d.status === 'error') {
+          clearInterval(iv); delete pollers[id];
+          if (d.status === 'done') {
+            const sub = d.subs_burned ? ' (subs burned in)' : '';
+            toast('✅ Downloaded' + sub + '!', 'ok');
+            loadFiles();
+          } else {
+            toast('❌ ' + d.error, 'err');
+          }
+        }
+      } catch(_) {}
+    }, 700);
+    pollers[id] = iv;
+  }
+
+  // ── Render queue item ─────────────────────────────────────────────────────
+  function renderQueueItem(id, d) {
+    const empty = queueList.querySelector('.empty');
+    if (empty) empty.remove();
+
+    let el = document.getElementById('qi-' + id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'qi-' + id;
+      el.className = 'queue-item';
+      queueList.prepend(el);
+    }
+
+    const isBurning = ['burning', 'parsing_subs', 'finding_subs'].includes(d.status);
+    el.classList.toggle('is-burning', isBurning);
+
+    const bCls = { downloading:'b-dl', burning:'b-burn', parsing_subs:'b-burn',
+                   finding_subs:'b-burn', processing:'b-proc', done:'b-done',
+                   error:'b-error', starting:'b-start' }[d.status] || 'b-start';
+    const bTxt = { downloading:'⬇️ Downloading', burning:'🔥 Burning Subs',
+                   parsing_subs:'📝 Parsing Subs', finding_subs:'🔍 Finding Subs',
+                   processing:'⚙️ Processing', done:'✅ Done',
+                   error:'❌ Failed', starting:'⏳ Starting' }[d.status] || d.status;
+
+    const isActive = !['done','error'].includes(d.status);
+
+    el.innerHTML = `
+      <div class="queue-header">
+        <div class="queue-title">${d.title || d.url || id}</div>
+        <span class="badge ${bCls}">
+          ${isActive ? '<span class="dot"></span>' : ''}
+          ${bTxt}
+        </span>
+      </div>
+      ${d.burn_subs && (d.sub_style_label || d.sub_lang) ? `
+      <div class="queue-tags">
+        <span class="tag">🔤 ${d.sub_lang || 'en'}</span>
+        <span class="tag">🎨 ${d.sub_style_label || d.sub_style || ''}</span>
+      </div>` : ''}
+      ${isActive ? `
+      <div class="progress-wrap">
+        <div class="bar-bg">
+          <div class="bar-fill ${isBurning ? 'burning' : ''}" style="width:${d.progress}%"></div>
+        </div>
+        <div class="bar-label">
+          <span>${d.status_label || ''}</span>
+          <span>${d.speed || ''} ${d.eta ? '· ' + d.eta + ' left' : ''}</span>
+        </div>
+      </div>` : ''}
+      ${d.status === 'done' ? `
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <a href="/downloads/${encodeURIComponent(d.filename)}" download class="btn btn-success" style="height:36px;padding:8px 16px;font-size:12px;">⬇️ Save File</a>
+        <button class="btn btn-ghost" onclick="openFolder()" style="height:36px;padding:8px 14px;font-size:12px;">📂 Open Folder</button>
+        ${d.subs_burned ? '<span class="sub-chip chip-manual">🔤 Subs Burned ✅</span>' : ''}
+      </div>
+      ${d.sub_warn ? `<div class="alert alert-warn" style="margin-top:8px;">⚠️ ${d.sub_warn}</div>` : ''}` : ''}
+      ${d.status === 'error' ? `<div class="alert alert-error" style="margin-top:8px;">⚠️ ${d.error}</div>` : ''}
+    `;
+  }
+
+  // ── Load files ────────────────────────────────────────────────────────────
+  async function loadFiles() {
+    try {
+      const res  = await fetch('/api/files');
+      const data = await res.json();
+      if (!data.length) {
+        fileList.innerHTML = '<div class="empty"><div class="empty-icon">🎬</div>No MP4s yet — download something!</div>';
+        return;
+      }
+      fileList.innerHTML = data.map(f => `
+        <div class="file-item">
+          <div class="file-icon">🎬</div>
+          <div class="file-info">
+            <div class="file-name" title="${f.name}">${f.name}</div>
+            <div class="file-size">${f.size}</div>
+          </div>
+          <a href="/downloads/${encodeURIComponent(f.name)}" download
+             class="btn btn-success" style="height:36px;padding:8px 14px;font-size:12px;">⬇️ Save</a>
+        </div>
+      `).join('');
+    } catch(e) {}
+  }
+
+  async function openFolder() { await fetch('/api/open-folder', { method: 'POST' }); }
+
+  // Enter key downloads
+  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') startDownload(); });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function fmtDuration(s) {
+    if (!s) return '—';
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sc = s%60;
+    if (h) return `${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+    return `${m}:${String(sc).padStart(2,'0')}`;
+  }
+  function fmtNum(n) {
+    if (!n) return '—';
+    if (n>=1e9) return (n/1e9).toFixed(1)+'B';
+    if (n>=1e6) return (n/1e6).toFixed(1)+'M';
+    if (n>=1e3) return (n/1e3).toFixed(1)+'K';
+    return n;
+  }
+
+  loadFiles();
+  loadStyles();
+</script>
+</body>
+</html>

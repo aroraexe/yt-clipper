@@ -76,6 +76,8 @@ def test_proxy(proxy):
         return None
 
 def maintain_proxy_pool():
+    if os.environ.get("PROXY_URL"):
+        return # Skip scraping if dedicated proxy is set
     while True:
         if WORKING_PROXIES.qsize() < 5:
             proxies = get_free_proxies()[:100]

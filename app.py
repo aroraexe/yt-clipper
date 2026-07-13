@@ -53,11 +53,17 @@ def get_free_proxies():
 
 WORKING_PROXIES = queue.Queue(maxsize=10)
 
+class DummyLogger:
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
+
 def test_proxy(proxy):
     opts = {
         'proxy': proxy,
         'quiet': True,
         'no_warnings': True,
+        'logger': DummyLogger(),
         'extractor_args': {'youtube': ['player_client=ios,android']}
     }
     try:

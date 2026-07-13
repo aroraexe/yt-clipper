@@ -73,11 +73,9 @@ def run_download(dl_id: str, url: str, quality: str,
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
         "extractor_args": {"youtube": ["player_client=ios,android"]},
     }
-
-    cookie_file = get_cookie_file()
-    if cookie_file:
-        ydl_opts["cookiefile"] = cookie_file
-
+    # We explicitly DO NOT load cookies here. 
+    # Burned cookies cause the bot detection error. 
+    # By staying anonymous and using the ios/android player clients, we bypass the block.
     if burn_subs:
         ydl_opts.update({
             "writesubtitles": True,

@@ -124,30 +124,10 @@ def run_download(dl_id: str, url: str, quality: str,
 
                 record.update({
                     "title":     title,
-                "thumbnail": info.get("thumbnail", ""),
-                "duration":  info.get("duration", 0),
-            })
+                    "thumbnail": info.get("thumbnail", ""),
+                    "duration":  info.get("duration", 0),
+                })
 
-        # ── Subtitle burn ─────────────────────────────────────────────────
-        if burn_subs:
-            record.update({"status": "finding_subs", "status_label": "Looking for subtitle file…"})
-            safe_title = sanitize_filename(record["title"])
-            sub_file = find_subtitle_file(safe_title, sub_lang)
-
-            if sub_file and sub_file.exists():
-                final_file = burn_subtitles(video_file, sub_file, sub_style, sub_anim, sub_color, record, aspect_ratio, word_by_word)
-
-                # Swap original with burned version
-                video_file.unlink(missing_ok=True)
-                final_file.rename(video_file)
-
-                # Cleanup leftover subtitle files
-                for f in DOWNLOAD_DIR.glob(f"{safe_title}*.srt"):
-                    f.unlink(missing_ok=True)
-                for f in DOWNLOAD_DIR.glob(f"{safe_title}*.vtt"):
-                    f.unlink(missing_ok=True)
-                for f in DOWNLOAD_DIR.glob(f"{safe_title}*.ass"):
-                    f.unlink(missing_ok=True)
             # ── Subtitle burn ─────────────────────────────────────────────────
             if burn_subs:
                 record.update({"status": "finding_subs", "status_label": "Looking for subtitle file…"})

@@ -64,6 +64,7 @@ def test_proxy(proxy):
         'quiet': True,
         'no_warnings': True,
         'logger': DummyLogger(),
+        'nocheckcertificate': True,
         'socket_timeout': 5,
         'extractor_args': {'youtube': ['player_client=ios,android']}
     }
@@ -130,6 +131,7 @@ def run_download(dl_id: str, url: str, quality: str,
         "merge_output_format": "mp4",
         "progress_hooks": [progress_hook],
         "quiet": True, "no_warnings": True,
+        "nocheckcertificate": True,
         "overwrites": True,
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
         "extractor_args": {"youtube": ["player_client=ios,android"]},

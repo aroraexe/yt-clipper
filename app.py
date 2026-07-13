@@ -23,6 +23,15 @@ with open(Path(__file__).parent / 'animations.json', encoding='utf-8') as f:
 
 from subtitle_engine import find_subtitle_file, burn_subtitles, _fmt_bytes, sanitize_filename
 
+def get_cookie_file():
+    render_secret = Path("/etc/secrets/cookies.txt")
+    if render_secret.exists():
+        return str(render_secret)
+    local_cookie = Path(__file__).parent / "cookies.txt"
+    if local_cookie.exists():
+        return str(local_cookie)
+    return None
+
 def run_download(dl_id: str, url: str, quality: str,
                  burn_subs: bool, sub_lang: str, sub_style: str, sub_anim: str, sub_color: str = "", aspect_ratio: str = "original", word_by_word: bool = False):
     record = downloads[dl_id]
@@ -60,6 +69,10 @@ def run_download(dl_id: str, url: str, quality: str,
         "overwrites": True,
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
     }
+
+    cookie_file = get_cookie_file()
+    if cookie_file:
+        ydl_opts["cookiefile"] = cookie_file
 
     if burn_subs:
         ydl_opts.update({
@@ -152,7 +165,12 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
     try:
-        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+        ydl_opts = {"quiet": True, "no_warnings": True}
+        cookie_file = get_cookie_file()
+        if cookie_file:
+            ydl_opts["cookiefile"] = cookie_file
+            
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info     = ydl.extract_info(url, download=False)
             subs     = info.get("subtitles", {})
             auto_sub = info.get("automatic_captions", {})

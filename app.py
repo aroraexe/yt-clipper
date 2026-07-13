@@ -71,6 +71,7 @@ def run_download(dl_id: str, url: str, quality: str,
         "quiet": True, "no_warnings": True,
         "overwrites": True,
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
+        "extractor_args": {"youtube": ["player_client=ios,android"]},
     }
 
     cookie_file = get_cookie_file()

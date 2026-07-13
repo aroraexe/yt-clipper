@@ -6,6 +6,9 @@ import re
 import shutil
 import requests
 import random
+import queue
+import time
+import concurrent.futures
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
@@ -47,6 +50,42 @@ def get_free_proxies():
     except Exception as e:
         print(f"Failed to fetch proxies: {e}")
         return []
+
+WORKING_PROXIES = queue.Queue(maxsize=10)
+
+def test_proxy(proxy):
+    opts = {
+        'proxy': proxy,
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {'youtube': ['player_client=ios,android']}
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            # lightweight check without downloading
+            ydl.extract_info('https://youtu.be/xeF7VUGTu6M', download=False)
+        return proxy
+    except Exception:
+        return None
+
+def maintain_proxy_pool():
+    while True:
+        if WORKING_PROXIES.qsize() < 5:
+            proxies = get_free_proxies()[:30]
+            if proxies:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                    futures = {executor.submit(test_proxy, p): p for p in proxies}
+                    for future in concurrent.futures.as_completed(futures):
+                        res = future.result()
+                        if res:
+                            try:
+                                WORKING_PROXIES.put(res, block=False)
+                            except queue.Full:
+                                pass
+        time.sleep(10)
+
+# Start background worker
+threading.Thread(target=maintain_proxy_pool, daemon=True).start()
 
 def run_download(dl_id: str, url: str, quality: str,
                  burn_subs: bool, sub_lang: str, sub_style: str, sub_anim: str, sub_color: str = "", aspect_ratio: str = "original", word_by_word: bool = False):
@@ -97,15 +136,23 @@ def run_download(dl_id: str, url: str, quality: str,
             "subtitlesformat": "vtt/srt/best",
         })
     premium_proxy = os.environ.get("PROXY_URL")
-    if premium_proxy:
-        proxies_to_try = [premium_proxy]
-    else:
-        proxies_to_try = [None] + get_free_proxies()[:15]
-        
+    
     success = False
     last_error = None
+    
+    # Try up to 5 times
+    for attempt in range(5):
+        if premium_proxy:
+            proxy = premium_proxy
+        else:
+            try:
+                # wait up to 30s for a working proxy
+                record.update({"status": "processing", "status_label": "Waiting for a clean proxy...", "progress": 5})
+                proxy = WORKING_PROXIES.get(timeout=30)
+            except queue.Empty:
+                record.update({"status": "error", "error": "Proxy pool is empty. Please try again later."})
+                return
 
-    for proxy in proxies_to_try:
         if proxy:
             ydl_opts['proxy'] = proxy
             proxy_type = "Premium" if proxy == premium_proxy else "Free"
